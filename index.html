@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-FSE5912QSX"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-FSE5912QSX');
+</script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Low-Risk Portfolio Optimizer</title>
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Portfolio Opt" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg: #0A0A0C;
+    --panel: #141317;
+    --panel-2: #1C1A20;
+    --line: #2A2730;
+    --text: #F5F3F7;
+    --text-dim: #8B8794;
+    --mint: #FF2E88;
+    --amber: #FF9F1C;
+    --red: #FF4459;
+    --mono: 'IBM Plex Mono', 'Courier New', monospace;
+    --sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body{
+    margin:0;
+    background: radial-gradient(circle at 15% -10%, #16233c 0%, var(--bg) 55%);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+  }
+  .app{
+    display:grid;
+    grid-template-columns: 340px 1fr;
+    min-height:100vh;
+  }
+  @media (max-width: 900px){
+    .app{ grid-template-columns: 1fr; }
+  }
+  aside{
+    background: var(--panel);
+    border-right: 1px solid var(--line);
+    padding: 28px 24px;
+  }
+  .brand{
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    color: var(--mint);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  h1{
+    font-size: 21px;
+    margin: 0 0 22px 0;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+  label{
+    display:block;
+    font-size: 12px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 18px 0 6px 0;
+  }
+  input{
+    width: 100%;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    color: var(--text);
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+  input:focus{ outline: 2px solid var(--mint); outline-offset: 1px; }
+  .hint{
+    font-size: 11.5px;
+    color: var(--text-dim);
+    margin-top: 6px;
+    line-height: 1.5;
+  }
+  button{
+    width: 100%;
+    margin-top: 24px;
+    background: var(--mint);
+    color: #FFFFFF;
+    border: none;
+    padding: 12px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+  }
+  button:disabled{ opacity: 0.5; cursor: not-allowed; }
+  button:focus-visible{ outline: 2px solid #fff; outline-offset: 2px; }
+  .log{
+    margin-top: 18px;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--text-dim);
+    max-height: 180px;
+    overflow-y: auto;
+    border-top: 1px dashed var(--line);
+    padding-top: 10px;
+    line-height: 1.7;
+  }
+  .log .err{ color: var(--red); }
+  .log .ok{ color: var(--mint); }
+  main{ padding: 32px 40px; }
+  .empty{
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 13px;
+    margin-top: 80px;
+    text-align:center;
+  }
+  .cards{
+    display:grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+  @media (max-width: 700px){ .cards{ grid-template-columns: repeat(2,1fr);} }
+  .card{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+  .card .label{ font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.06em; }
+  .card .value{ font-family: var(--mono); font-size: 22px; margin-top: 6px; }
+  .value.pos{ color: var(--mint); }
+  .value.warn{ color: var(--amber); }
+  section.panel{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 22px;
+    margin-bottom: 24px;
+  }
+  section.panel h2{
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    margin: 0 0 16px 0;
+  }
+  /* signature element: segmented risk-weight bar */
+  .allocbar{
+    display:flex;
+    height: 34px;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+  }
+  .allocbar div{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: #0A0A0C;
+    font-weight: 700;
+    min-width: 2px;
+  }
+  .legend{
+    display:flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-top: 14px;
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+  .legend span.dot{
+    display:inline-block;
+    width:10px; height:10px;
+    border-radius:2px;
+    margin-right:6px;
+    vertical-align: -1px;
+  }
+  table{ width:100%; border-collapse: collapse; font-family: var(--mono); font-size: 13px; }
+  th, td{ text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); }
+  th{ color: var(--text-dim); font-weight: 500; text-transform: uppercase; font-size: 11px; letter-spacing: 0.05em; }
+  td.num, th.num{ text-align: right; }
+  .chart-wrap{ max-width: 320px; margin: 0 auto; }
+  .disclaimer{
+    font-size: 11.5px;
+    color: var(--text-dim);
+    line-height: 1.6;
+    border-top: 1px solid var(--line);
+    padding-top: 14px;
+    margin-top: 4px;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <div class="brand">Markowitz // Min-Variance</div>
+    <h1>Low-Risk Portfolio Optimizer</h1>
+
+    <label for="tickers">Tickers (comma-separated)</label>
+    <input id="tickers" type="text" placeholder="AAPL, MSFT, JNJ, KO, TLT" />
+    <div class="hint">Uses Yahoo Finance's public chart data (no API key needed). This is an unofficial, undocumented endpoint — it can change or rate-limit without notice, so treat this as a personal/learning tool, not production infrastructure.</div>
+
+    <label for="riskFree">Risk-free rate (annual, %)</label>
+    <input id="riskFree" type="number" step="0.1" value="4.5" />
+
+    <button id="runBtn">Optimize Portfolio</button>
+    <div id="log" class="log"></div>
+  </aside>
+
+  <main>
+    <div id="emptyState" class="empty">Enter a few tickers, then click "Optimize Portfolio."</div>
+    <div id="results" style="display:none;">
+
+      <div class="cards">
+        <div class="card"><div class="label">Expected Annual Return</div><div class="value pos" id="statReturn">—</div></div>
+        <div class="card"><div class="label">Annual Volatility</div><div class="value warn" id="statVol">—</div></div>
+        <div class="card"><div class="label">Sharpe Ratio</div><div class="value" id="statSharpe">—</div></div>
+        <div class="card"><div class="label">Trading Days Used</div><div class="value" id="statDays">—</div></div>
+      </div>
+
+      <section class="panel">
+        <h2>Minimum-Variance Allocation</h2>
+        <div class="allocbar" id="allocBar"></div>
+        <div class="legend" id="legend"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Holdings Detail</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Ticker</th>
+              <th class="num">Weight</th>
+              <th class="num">Latest Close</th>
+              <th class="num">Ann. Return</th>
+              <th class="num">Ann. Volatility</th>
+            </tr>
+          </thead>
+          <tbody id="holdingsBody"></tbody>
+        </table>
+      </section>
+
+      <section class="panel">
+        <h2>Allocation Breakdown</h2>
+        <div class="chart-wrap"><canvas id="pieChart"></canvas></div>
+      </section>
+
+      <div class="disclaimer">
+        This tool computes a minimum-variance portfolio from historical daily-return covariance (Markowitz mean-variance framework), long-only, weights summing to 100%. It is an educational statistical output, not financial advice — past covariance is not a guarantee of future risk, and small-sample covariance estimates are noisy.
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+const logEl = document.getElementById('log');
+function log(msg, cls){
+  const line = document.createElement('div');
+  if (cls) line.className = cls;
+  line.textContent = msg;
+  logEl.appendChild(line);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+const COLORS = ['#FF2E88','#00E5FF','#FF9F1C','#B14EFF','#39FF88','#FF6EC7','#4EA8FF','#FFE14E','#FF5C5C','#7CFFCB'];
+
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+// ---- Data fetching (Yahoo Finance, via CORS proxy, no key needed) ----
+// Try multiple public proxies in order — free proxies are occasionally down/rate-limited,
+// so falling back to an alternate keeps the app working most of the time.
+function buildProxyUrls(yahooUrl){
+  const enc = encodeURIComponent(yahooUrl);
+  return [
+    `https://api.allorigins.win/raw?url=${enc}`,
+    `https://corsproxy.io/?url=${enc}`,
+    `https://api.codetabs.com/v1/proxy?quest=${enc}`,
+  ];
+}
+
+async function fetchDailySeries(symbol){
+  const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=6mo&interval=1d`;
+  const proxies = buildProxyUrls(yahooUrl);
+
+  let lastErr = null;
+  for (const proxyUrl of proxies){
+    try {
+      const res = await fetch(proxyUrl);
+      if (!res.ok) throw new Error(`request failed (${res.status})`);
+      const data = await res.json();
+
+      const result = data?.chart?.result?.[0];
+      const err = data?.chart?.error;
+      if (err) throw new Error(err.description || 'invalid symbol.');
+      if (!result) throw new Error('no data returned.');
+
+      const timestamps = result.timestamp;
+      const closes = result.indicators?.quote?.[0]?.close;
+      if (!timestamps || !closes) throw new Error('malformed response.');
+
+      const series = [];
+      for (let i = 0; i < timestamps.length; i++){
+        if (closes[i] === null || closes[i] === undefined) continue;
+        const date = new Date(timestamps[i] * 1000).toISOString().slice(0, 10);
+        series.push({ date, close: closes[i] });
+      }
+      if (series.length === 0) throw new Error('no valid closing prices returned.');
+      return series.sort((a,b) => a.date.localeCompare(b.date));
+    } catch (e) {
+      lastErr = e;
+      continue; // try the next proxy
+    }
+  }
+  throw new Error(`${symbol}: ${lastErr?.message || 'all proxies failed.'}`);
+}
+
+// ---- Stats helpers ----
+function dailyReturns(closes){
+  const r = [];
+  for (let i = 1; i < closes.length; i++) r.push(closes[i] / closes[i-1] - 1);
+  return r;
+}
+
+function mean(arr){ return arr.reduce((a,b)=>a+b,0) / arr.length; }
+
+function covarianceMatrix(returnMatrix){
+  const n = returnMatrix.length;
+  const T = returnMatrix[0].length;
+  const means = returnMatrix.map(mean);
+  const cov = Array.from({length:n}, () => new Array(n).fill(0));
+  for (let i = 0; i < n; i++){
+    for (let j = i; j < n; j++){
+      let s = 0;
+      for (let t = 0; t < T; t++){
+        s += (returnMatrix[i][t] - means[i]) * (returnMatrix[j][t] - means[j]);
+      }
+      const c = s / (T - 1);
+      cov[i][j] = c;
+      cov[j][i] = c;
+    }
+  }
+  return cov;
+}
+
+function matVecMul(M, v){
+  return M.map(row => row.reduce((s, mij, j) => s + mij * v[j], 0));
+}
+
+// Euclidean projection onto the probability simplex (Duchi et al.)
+function projectToSimplex(v){
+  const n = v.length;
+  const u = [...v].sort((a,b) => b - a);
+  let cssv = 0, rho = -1, theta = 0;
+  let running = 0;
+  for (let i = 0; i < n; i++){
+    running += u[i];
+    const t = (running - 1) / (i + 1);
+    if (u[i] - t > 0) { rho = i; cssv = running; }
+  }
+  theta = (cssv - 1) / (rho + 1);
+  return v.map(x => Math.max(x - theta, 0));
+}
+
+// Minimum-variance portfolio via projected gradient descent, long-only, weights sum to 1
+function minVarianceWeights(covAnnual, iterations = 6000){
+  const n = covAnnual.length;
+  let w = new Array(n).fill(1 / n);
+  const maxDiag = Math.max(...covAnnual.map((row,i) => row[i]));
+  const lr = 0.15 / maxDiag;
+  for (let it = 0; it < iterations; it++){
+    const grad = matVecMul(covAnnual, w).map(x => 2 * x);
+    w = w.map((wi, i) => wi - lr * grad[i]);
+    w = projectToSimplex(w);
+  }
+  return w;
+}
+
+function fmtPct(x){ return (x * 100).toFixed(2) + '%'; }
+function fmtNum(x){ return x.toFixed(2); }
+
+// ---- Main flow ----
+document.getElementById('runBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('runBtn');
+  const tickers = document.getElementById('tickers').value
+    .split(',').map(t => t.trim().toUpperCase()).filter(Boolean);
+  const riskFree = parseFloat(document.getElementById('riskFree').value) / 100 || 0;
+
+  logEl.innerHTML = '';
+  if (tickers.length < 2) { log('Enter at least 2 tickers.', 'err'); return; }
+
+  btn.disabled = true;
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('results').style.display = 'none';
+
+  try {
+    const perTicker = {};
+    for (const t of tickers){
+      log(`Fetching ${t} ...`);
+      const series = await fetchDailySeries(t);
+      perTicker[t] = series;
+      log(`  done (${series.length} days).`, 'ok');
+      await sleep(200);
+    }
+
+    const dateSets = tickers.map(t => new Set(perTicker[t].map(d => d.date)));
+    let common = dateSets[0];
+    for (let i = 1; i < dateSets.length; i++){
+      common = new Set([...common].filter(d => dateSets[i].has(d)));
+    }
+    const sortedDates = [...common].sort();
+    if (sortedDates.length < 20){
+      throw new Error('Not enough overlapping trading days across tickers to build a covariance estimate.');
+    }
+
+    log(`Aligned ${sortedDates.length} common trading days across all tickers.`);
+
+    const closesByTicker = tickers.map(t => {
+      const map = new Map(perTicker[t].map(d => [d.date, d.close]));
+      return sortedDates.map(d => map.get(d));
+    });
+
+    const latestPrices = closesByTicker.map(arr => arr[arr.length - 1]);
+    const returnMatrix = closesByTicker.map(dailyReturns);
+    const T = returnMatrix[0].length;
+
+    log('Computing covariance matrix ...');
+    const covDaily = covarianceMatrix(returnMatrix);
+    const covAnnual = covDaily.map(row => row.map(v => v * 252));
+    const meanDaily = returnMatrix.map(mean);
+    const meanAnnual = meanDaily.map(m => m * 252);
+    const volAnnual = covAnnual.map((row, i) => Math.sqrt(row[i]));
+
+    log('Optimizing minimum-variance weights ...');
+    const weights = minVarianceWeights(covAnnual);
+
+    const portReturn = weights.reduce((s, w, i) => s + w * meanAnnual[i], 0);
+    const portVar = weights.reduce((s, wi, i) =>
+      s + wi * weights.reduce((s2, wj, j) => s2 + covAnnual[i][j] * wj, 0), 0);
+    const portVol = Math.sqrt(portVar);
+    const sharpe = (portReturn - riskFree) / portVol;
+
+    log('Done.', 'ok');
+
+    document.getElementById('statReturn').textContent = fmtPct(portReturn);
+    document.getElementById('statVol').textContent = fmtPct(portVol);
+    document.getElementById('statSharpe').textContent = fmtNum(sharpe);
+    document.getElementById('statDays').textContent = T;
+
+    const allocBar = document.getElementById('allocBar');
+    const legend = document.getElementById('legend');
+    allocBar.innerHTML = '';
+    legend.innerHTML = '';
+    const holdingsBody = document.getElementById('holdingsBody');
+    holdingsBody.innerHTML = '';
+
+    tickers.forEach((t, i) => {
+      const w = weights[i];
+      const color = COLORS[i % COLORS.length];
+
+      const seg = document.createElement('div');
+      seg.style.width = (w * 100) + '%';
+      seg.style.background = color;
+      seg.textContent = w > 0.06 ? t : '';
+      allocBar.appendChild(seg);
+
+      const leg = document.createElement('div');
+      leg.innerHTML = `<span class="dot" style="background:${color}"></span>${t} — ${fmtPct(w)}`;
+      legend.appendChild(leg);
+
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${t}</td>
+        <td class="num">${fmtPct(w)}</td>
+        <td class="num">$${latestPrices[i].toFixed(2)}</td>
+        <td class="num">${fmtPct(meanAnnual[i])}</td>
+        <td class="num">${fmtPct(volAnnual[i])}</td>
+      `;
+      holdingsBody.appendChild(row);
+    });
+
+    if (typeof Chart === 'undefined') {
+      log('Chart.js failed to load from the CDN — allocation table above is still accurate; pie chart skipped.', 'err');
+    } else {
+      const ctx = document.getElementById('pieChart').getContext('2d');
+      if (window._pie) window._pie.destroy();
+      window._pie = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: tickers,
+          datasets: [{ data: weights.map(w => (w*100).toFixed(2)), backgroundColor: tickers.map((_,i)=>COLORS[i % COLORS.length]), borderColor: '#0B1220', borderWidth: 2 }]
+        },
+        options: {
+          plugins: { legend: { display: false } },
+          cutout: '55%'
+        }
+      });
+    }
+
+    document.getElementById('results').style.display = 'block';
+
+  } catch (err) {
+    log('Error: ' + err.message, 'err');
+    document.getElementById('emptyState').style.display = 'block';
+  } finally {
+    btn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>
