@@ -282,8 +282,8 @@ const COLORS = ['#FF2E88','#00E5FF','#FF9F1C','#B14EFF','#39FF88','#FF6EC7','#4E
 
 function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
 
-// ---- Data fetching (Yahoo Finance, via CORS proxy, no key needed) ----
-// Try multiple public proxies in order — free proxies are occasionally down/rate-limited,
+// Data fetching (Yahoo Finance, via CORS proxy, no key needed)
+// Try multiple public proxies in order, free proxies are occasionally down/rate-limited,
 // so falling back to an alternate keeps the app working most of the time.
 function buildProxyUrls(yahooUrl){
   const enc = encodeURIComponent(yahooUrl);
@@ -330,7 +330,7 @@ async function fetchDailySeries(symbol){
   throw new Error(`${symbol}: ${lastErr?.message || 'all proxies failed.'}`);
 }
 
-// ---- Stats helpers ----
+// Stats helpers 
 function dailyReturns(closes){
   const r = [];
   for (let i = 1; i < closes.length; i++) r.push(closes[i] / closes[i-1] - 1);
@@ -362,7 +362,7 @@ function matVecMul(M, v){
   return M.map(row => row.reduce((s, mij, j) => s + mij * v[j], 0));
 }
 
-// Euclidean projection onto the probability simplex (Duchi et al.)
+// Euclidean projection onto the probability simplex
 function projectToSimplex(v){
   const n = v.length;
   const u = [...v].sort((a,b) => b - a);
@@ -377,7 +377,7 @@ function projectToSimplex(v){
   return v.map(x => Math.max(x - theta, 0));
 }
 
-// Minimum-variance portfolio via projected gradient descent, long-only, weights sum to 1
+// Minimum-variance portfolio, projected gradient descent, long-only, weights sum to 1
 function minVarianceWeights(covAnnual, iterations = 6000){
   const n = covAnnual.length;
   let w = new Array(n).fill(1 / n);
@@ -394,7 +394,7 @@ function minVarianceWeights(covAnnual, iterations = 6000){
 function fmtPct(x){ return (x * 100).toFixed(2) + '%'; }
 function fmtNum(x){ return x.toFixed(2); }
 
-// ---- Main flow ----
+// Main flow 
 document.getElementById('runBtn').addEventListener('click', async () => {
   const btn = document.getElementById('runBtn');
   const tickers = document.getElementById('tickers').value
